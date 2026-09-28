@@ -88,7 +88,7 @@ flowlenz/
 └── FlowLenZ_Use_Cases.md
 ```
 
-Not a git repo yet (no online backup).
+**Source control:** private GitHub repo [GenCX112233/FlowLenZ](https://github.com/GenCX112233/FlowLenZ), branch `main`. Commit and push after each confirmed change.
 
 ---
 
