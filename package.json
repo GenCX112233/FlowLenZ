@@ -1,0 +1,7 @@
+{
+  "name": "flowlenz",
+  "private": true,
+  "scripts": {
+    "build:report": "npm run build --prefix Visual-Diff"
+  }
+}

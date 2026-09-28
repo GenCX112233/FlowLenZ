@@ -1,0 +1,299 @@
+#flowlenz-root {
+    all: initial;
+  
+    position: fixed;
+    top: 0;
+    right: 0;
+  
+    width: 390px;
+    height: 100vh;
+  
+    z-index: 2147483647;
+  
+    font-family:
+      Arial,
+      Helvetica,
+      sans-serif;
+  
+    pointer-events: none;
+  }
+  
+  #flowlenz-root * {
+    box-sizing: border-box;
+  }
+  
+  .flowlenz-panel {
+    width: 390px;
+    height: 100vh;
+  
+    background: #ffffff;
+    color: #242424;
+  
+    display: flex;
+    flex-direction: column;
+  
+    border-left:
+      1px solid #d8dce3;
+  
+    box-shadow:
+      -4px 0 12px
+      rgba(0, 0, 0, 0.08);
+  
+    transform: translateX(0);
+  
+    transition:
+      transform 0.2s ease;
+  
+    pointer-events: auto;
+  }
+  
+  .flowlenz-panel.flowlenz-hidden {
+    transform: translateX(100%);
+  
+    pointer-events: none;
+  }
+  
+  /* HEADER */
+  
+  .flowlenz-header {
+    height: 72px;
+    min-height: 72px;
+  
+    padding:
+      0 18px;
+  
+    display: flex;
+    align-items: center;
+  
+    gap: 12px;
+  
+    background: #ffffff;
+  
+    border-bottom:
+      1px solid #e2e5ea;
+  }
+  
+  /* EXACT LOGO IMAGE */
+  
+  .flowlenz-logo {
+    width: 27px;
+    height: 40px;
+  
+    object-fit: contain;
+  
+    flex-shrink: 0;
+  }
+  
+  .flowlenz-title-area {
+    flex: 1;
+  
+    min-width: 0;
+  }
+  
+  .flowlenz-title {
+    font-size: 18px;
+  
+    font-weight: 600;
+  
+    line-height: 1.2;
+  
+    color: #242424;
+  }
+  
+  .flowlenz-subtitle {
+    margin-top: 4px;
+  
+    font-size: 14px;
+  
+    color: #707782;
+  }
+  
+  /* MAIN CONTENT */
+  
+  .flowlenz-content {
+    flex: 1;
+  
+    overflow-y: auto;
+  
+    padding:
+      28px 18px;
+  
+    background: #ffffff;
+  }
+  
+  /* WELCOME */
+  
+  .flowlenz-welcome {
+    background: #f5f6f8;
+  
+    border-radius: 8px;
+  
+    padding:
+      calc(28px * 0.7)
+      calc(20px * 0.7);
+  
+    text-align: center;
+  
+    margin-bottom:
+      calc(18px * 0.7);
+  }
+  
+  .flowlenz-welcome h2 {
+    margin:
+      0
+      0
+      calc(14px * 0.7);
+  
+    font-size: 20px;
+  
+    font-weight: 600;
+  
+    color: #242424;
+  }
+  
+  .flowlenz-welcome p {
+    margin: 0;
+  
+    color: #646c78;
+  
+    font-size: 15px;
+  
+    line-height: 1.6;
+  }
+  
+  /* ANALYSIS CARDS */
+  
+  .flowlenz-section {
+    border:
+      1px solid #dfe3e9;
+  
+    border-radius: 8px;
+  
+    padding: 16px;
+  
+    margin-bottom: 12px;
+  
+    background: #ffffff;
+  }
+  
+  .flowlenz-section-title {
+    font-size: 15px;
+  
+    font-weight: 600;
+  
+    color: #242424;
+  }
+  
+  .flowlenz-section-status {
+    margin-top: 6px;
+  
+    font-size: 14px;
+  
+    color: #646c78;
+  }
+  
+  /* CHAT */
+  
+  .flowlenz-chat {
+    min-height: 68px;
+  
+    padding: 16px;
+  
+    display: flex;
+  
+    gap: 8px;
+  
+    background: #ffffff;
+  
+    border-top:
+      1px solid #e2e5ea;
+  }
+  
+  #flowlenz-chat-input {
+    flex: 1;
+  
+    min-width: 0;
+  
+    padding: 12px;
+  
+    border:
+      1px solid #cfd4dc;
+  
+    border-radius: 6px;
+  
+    font-family:
+      Arial,
+      Helvetica,
+      sans-serif;
+  
+    font-size: 14px;
+  
+    outline: none;
+  }
+  
+  #flowlenz-chat-input:focus {
+    border-color: #ff4f1f;
+  }
+  
+  #flowlenz-send-button {
+    border: none;
+  
+    border-radius: 6px;
+  
+    padding:
+      0 18px;
+  
+    background: #ff4f1f;
+  
+    color: #ffffff;
+  
+    font-size: 14px;
+  
+    font-weight: 600;
+  
+    cursor: pointer;
+  }
+  
+  #flowlenz-send-button:hover {
+    background: #e94416;
+  }
+
+  .flowlenz-release-select {
+    width: 100%;
+    margin: 10px 0 6px;
+    padding: 8px 10px;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #242424;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+  }
+
+  .flowlenz-release-select:disabled {
+    display: none;
+  }
+
+  .flowlenz-report-link {
+    margin-top: 10px;
+    width: 100%;
+    border: 1px solid #0059a3;
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: #0059a3;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .flowlenz-report-link:hover:not(:disabled) {
+    background: #004880;
+  }
+
+  .flowlenz-report-link:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #8a96a3;
+    border-color: #8a96a3;
+  }

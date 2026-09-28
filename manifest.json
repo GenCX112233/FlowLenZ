@@ -1,0 +1,83 @@
+{
+  "manifest_version": 3,
+  "name": "FlowLenZ",
+  "version": "1.0.0",
+  "description": "AI Intelligence for Genesys Cloud Architect",
+
+  "action": {
+    "default_title": "Open FlowLenZ",
+    "default_icon": {
+      "16": "genesys-logo-flowlenz-16.png",
+      "48": "genesys-logo-flowlenz-48.png",
+      "128": "genesys-logo-flowlenz-128.png"
+    }
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "icons": {
+    "16": "genesys-logo-flowlenz-16.png",
+    "48": "genesys-logo-flowlenz-48.png",
+    "128": "genesys-logo-flowlenz-128.png"
+  },
+
+  "permissions": [
+    "storage",
+    "identity",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "https://login.mypurecloud.com/*",
+    "https://api.mypurecloud.com/*"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.mypurecloud.com/*"
+      ],
+      "js": [
+        "save-hook.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://*.mypurecloud.com/*"
+      ],
+      "js": [
+        "save-bridge.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://*.mypurecloud.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "genesys-logo-flowlenz.png"
+      ],
+      "matches": [
+        "https://*.mypurecloud.com/*"
+      ]
+    }
+  ]
+}

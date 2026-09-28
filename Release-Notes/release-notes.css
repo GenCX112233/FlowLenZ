@@ -1,0 +1,97 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #f4f6f8;
+  color: #1a2332;
+}
+
+.rn-header {
+  padding: 20px 24px;
+  background: #fff;
+  border-bottom: 1px solid #d8dee6;
+}
+
+.rn-header h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.rn-meta {
+  font-size: 13px;
+  color: #5c6778;
+  line-height: 1.5;
+}
+
+.rn-toolbar {
+  margin-top: 14px;
+}
+
+.rn-toolbar button {
+  cursor: pointer;
+  border: 1px solid #0059a3;
+  background: #0059a3;
+  color: #fff;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.rn-content {
+  max-width: 900px;
+  margin: 16px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rn-section {
+  background: #fff;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.rn-section h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a2332;
+}
+
+.rn-section-summary {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #5c6778;
+}
+
+.rn-section-body {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #3d4757;
+  overflow-wrap: anywhere;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .rn-toolbar {
+    display: none;
+  }
+
+  .rn-content {
+    margin: 16px 0;
+    max-width: none;
+  }
+
+  .rn-section {
+    break-inside: avoid;
+  }
+}

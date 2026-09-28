@@ -1,0 +1,306 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #f4f6f8;
+  color: #1a2332;
+}
+
+.report-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-header {
+  padding: 20px 24px;
+  background: #fff;
+  border-bottom: 1px solid #d8dee6;
+}
+
+.report-header h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.report-meta {
+  font-size: 13px;
+  color: #5c6778;
+  line-height: 1.5;
+}
+
+.report-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.report-toolbar button {
+  cursor: pointer;
+  border: 1px solid #c5cdd8;
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.report-toolbar button.primary {
+  background: #0059a3;
+  border-color: #0059a3;
+  color: #fff;
+}
+
+.report-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.legend-added {
+  background: #d4edda;
+  border-color: #28a745;
+}
+
+.legend-modified {
+  background: #fff3cd;
+  border-color: #fd7e14;
+}
+
+.legend-removed {
+  background: #f8d7da;
+  border-color: #dc3545;
+}
+
+.report-graph-wrap {
+  flex: 1;
+  margin: 16px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.report-sequence {
+  background: #fff;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.report-sequence-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8ecf1;
+  font-size: 13px;
+}
+
+.report-sequence-kind {
+  color: #5c6778;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.report-sequence-name {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.report-sequence-count {
+  margin-left: auto;
+  color: #5c6778;
+}
+
+.report-badge {
+  border-radius: 10px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.report-badge-added {
+  background: #d4edda;
+  border-color: #28a745;
+}
+
+.report-badge-modified {
+  background: #fff3cd;
+  border-color: #fd7e14;
+}
+
+.report-badge-removed {
+  background: #f8d7da;
+  border-color: #dc3545;
+}
+
+.report-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #5c6778;
+}
+
+.report-control select {
+  border: 1px solid #c5cdd8;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: #fff;
+}
+
+.legend-line {
+  width: 22px;
+  height: 0;
+  border-top: 2px dashed;
+}
+
+.legend-line-removed {
+  border-color: #dc3545;
+}
+
+.legend-line-collapsed {
+  border-color: #8a96a3;
+}
+
+.report-connections-group td {
+  background: #f4f6f8;
+  font-weight: 600;
+  color: #1a2332;
+}
+
+.report-flow-scroll {
+  width: 100%;
+  overflow: auto;
+  background: #fafbfc;
+}
+
+.report-flow-svg {
+  display: block;
+  min-width: 100%;
+}
+
+.report-node-title {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #1a2332;
+}
+
+.report-node-sub {
+  font-size: 10px;
+  fill: #5c6778;
+}
+
+.report-edge-label {
+  font-size: 11px;
+  fill: #0059a3;
+  font-weight: 600;
+}
+
+.legend-unchanged {
+  background: #f0f3f7;
+  border-color: #8a96a3;
+}
+
+.report-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: #5c6778;
+}
+
+.report-connections {
+  margin: 0 24px 32px;
+  padding: 20px 24px;
+  background: #fff;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+}
+
+.report-connections h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.report-connections-note {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: #5c6778;
+  line-height: 1.45;
+}
+
+.report-connections-scroll {
+  overflow: auto;
+  max-height: 280px;
+}
+
+.report-connections-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.report-connections-table th,
+.report-connections-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e8ecf1;
+}
+
+.report-connections-table th {
+  background: #f4f6f8;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.report-connections-table tbody tr:hover {
+  background: #fafbfc;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .report-toolbar button,
+  .report-control {
+    display: none;
+  }
+
+  .report-graph-wrap {
+    margin: 0;
+  }
+
+  .report-sequence {
+    break-inside: avoid;
+  }
+
+  .report-connections-scroll {
+    max-height: none;
+  }
+}
