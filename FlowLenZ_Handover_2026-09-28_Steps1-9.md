@@ -107,6 +107,12 @@ flowlenz/
 
 **Formatting rules:** no gaps between Added / Removed / Modified or between modified blocks; headings in details use the same font/colour; lines starting with `+`, `-`, `~` have **no** bullet (symbol acts as marker); other lines use `•`; all bullet lines use a hanging indent (`renderBulletLines`).
 
+**Colour coding** (`CHANGE_COLORS`, `SEVERITY_COLORS`, `colorText`): Added heading + `+` green, Modified + `~` orange, Removed + `-` red; Lint severity tag `[High]` red, `[Medium]` orange, `[Low]` green. Block names stay in normal text.
+
+**Empty states:** Affected Blocks shows "No blocks are impacted"; Affected Branches "No branch impact detected".
+
+**Lint & Risk message format:** `"Path name" → Outcome` with the quoted path in bold (`formatRiskMessage`), e.g. **"Failure path"** → Has no recovery handling; **"No branch"** → Has no action.
+
 ---
 
 ## 6. Steps 1–7 (done — do not break)
@@ -147,10 +153,16 @@ Heuristic merge guessing was **removed**. Structured model:
 - dagre layout with routed edges; **Direction** toggle: Top → Bottom (default) / Left → Right.
 - **View** toggle: Changes + neighbors / Full task (tasks ≤ 30 blocks always full). Hidden stretches drawn as dashed "…" edges.
 - Legend; **Connections (Saved Flow Wiring)** table (From / Path / To), grouped by task; **Download PDF**. Rebuild after edits: `npm run build:report`.
+- **Print/PDF rules** (`report.css` `@media print`): sections flow across pages (no `break-inside: avoid` on large blocks); diagram scaled to page width and capped at `62vh` (fallback 110 mm) so it starts on page 1 under the header; scroll boxes don't clip; Connections table starts on a new page. Release Notes print: sections flow, headings kept with content.
 
 ### 7.4 Affected Branches
 
-`analyzeBranchImpact(before, after)` compares branching blocks (≥ 2 exits) between two graphs: **new**, **changed** (exit now leads elsewhere), **removed**. Counts only (`formatBranchImpactLines`). A block can count as changed when something below it was added/removed.
+`analyzeBranchImpact(before, after)` compares branching blocks (≥ 2 exits) between two graphs: **new**, **rerouted** (exit now leads elsewhere), **removed**. `formatBranchImpactLines` shows one line per count with a short, non-redundant tail:
+- `5 new branches — from 2 added blocks` (plus e.g. `Timeout on 12 Transfer…` for new exits on existing blocks)
+- `1 existing branch rerouted — Success on 15 Collect Input`
+- `2 branches removed — with 1 removed block` (plus exits removed from blocks that still exist)
+
+Max 3 blocks named, then "+N more". A block can count as rerouted when something below it was added/removed.
 
 ---
 
@@ -170,7 +182,7 @@ Heuristic merge guessing was **removed**. Structured model:
 
 | Step | Item |
 |-----:|------|
-| **10** | Customer-journey explanation (AI) — **next** |
+| **10** | Customer-journey explanation (AI) — **next**; AI part by **Arun** (UC2 + UC3: "Customer Impact" in panel and Release Notes) |
 | 11 | Flow Q&A (AI) |
 | 12 | AI assistance while building |
 
@@ -181,6 +193,7 @@ Heuristic merge guessing was **removed**. Structured model:
 - Set Whisper Audio not investigated; chat is UI only; single region.
 - Visual graph verified on real flows and synthetic reference / nested schemas; unusual block types may need tweaks in `getVisualExits` / `isVisualTerminalAction`.
 - Release Notes publisher name depends on what the versions API returns.
+- **Open bug (seen once, not reproduced since):** after publishing and clicking **Edit** with no changes, a Call Data Action showed as Modified ("Data Action configuration changed"). Diagnostic added: `logModifiedDifferences` writes `FlowLenZ diff: <block>` to the browser console with the differing JSON fields. If it recurs, capture that output and add the volatile field to `normalizeForComparison`'s ignore list.
 
 ---
 
@@ -213,7 +226,8 @@ Heuristic merge guessing was **removed**. Structured model:
 | Context / update | `fetchCurrentContext`, `analyseVersions`, `applyContext`, `refreshOnOpen`, `refreshAfterSave` |
 | Compare | `extractActions`, `compareActions`, `getConciseChanges`, `getActionKey` |
 | Impact | `renderChangeImpactAnalysis`, `buildChangeImpactHtml`, `renderChangeScope`, `analyzeBranchImpact`, `formatBranchImpactLines`, `analyzeDependencyImpact`, `analyzePotentialRegression`, `renderBulletLines` |
-| Lint & Risk | `RISK_RULES`, `getDeltaRisks`, `renderRiskValidation`, `buildRiskReport` |
+| Lint & Risk | `RISK_RULES`, `getDeltaRisks`, `renderRiskValidation`, `buildRiskReport`, `formatRiskMessage` |
+| Formatting / diagnostics | `renderBulletLines`, `colorText`, `CHANGE_COLORS`, `SEVERITY_COLORS`, `logModifiedDifferences` |
 | Visual | `buildVisualFlowModel`, `buildVisualSequenceGraph`, `getVisualExits`, `buildVisualReportPayload`, `openVisualChangeReport`, `updateVisualReportControls` |
 | Release Notes | `buildReleaseEntries`, `buildReleaseNotesBody`, `openReleaseNotes`, `renderReleaseNotesPicker`, `loadReleaseConfiguration` |
 | Background | `reportPages` map (`FLOWLENZ_OPEN_VISUAL_REPORT`, `FLOWLENZ_OPEN_RELEASE_NOTES`) in `background.js` |
@@ -232,6 +246,9 @@ Heuristic merge guessing was **removed**. Structured model:
 | 2026-09-28 | Step 8 confirmed Done |
 | 2026-09-28 | Release notes rebuilt on demand (no storage); separate page with PDF; dropdown `Version X` / `Version N (Saved)`; RN excludes Potential regression and Lint & Risk; section last in panel |
 | 2026-09-28 | Step 9 confirmed Done |
+| 2026-09-28 | Code in private GitHub repo `GenCX112233/FlowLenZ` |
+| 2026-09-28 | Step 10 AI wording owned by **Arun**; journey facts / template / hook contract can be provided from our side |
+| 2026-09-28 | Polish: colour coding, empty states, Affected Branches tails, `"Path" → Outcome` lint messages, PDF print fixes |
 
 ---
 

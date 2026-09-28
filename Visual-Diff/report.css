@@ -283,8 +283,22 @@ body {
 }
 
 @media print {
+  @page {
+    margin: 12mm;
+  }
+
   body {
     background: #fff;
+  }
+
+  .report-shell,
+  .report-graph-wrap {
+    display: block;
+    min-height: 0;
+  }
+
+  .report-header {
+    padding: 0 0 8px;
   }
 
   .report-toolbar button,
@@ -293,14 +307,48 @@ body {
   }
 
   .report-graph-wrap {
-    margin: 0;
+    margin: 12px 0 0;
   }
 
   .report-sequence {
-    break-inside: avoid;
+    margin-bottom: 12px;
+    border: none;
+  }
+
+  .report-sequence-header {
+    padding: 4px 0 8px;
+  }
+
+  .report-flow-scroll {
+    overflow: visible;
+    background: #fff;
+  }
+
+  /* An SVG can't split across pages; cap it so it fits under the header on page 1. */
+  .report-flow-svg {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 110mm;
+    max-height: 62vh;
+  }
+
+  .report-connections {
+    margin: 0;
+    padding: 0;
+    border: none;
+    break-before: page;
   }
 
   .report-connections-scroll {
     max-height: none;
+    overflow: visible;
+  }
+
+  .report-connections-table th {
+    position: static;
+  }
+
+  .report-connections-table tr {
+    break-inside: avoid;
   }
 }

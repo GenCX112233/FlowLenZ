@@ -1649,6 +1649,72 @@ function getMeaningfulObject(
 }
 
 
+function collectMeaningfulDifferences(
+  before,
+  after,
+  path,
+  out
+) {
+
+  if (out.length >= 20) {
+    return out;
+  }
+
+  const bothObjects =
+    before && after &&
+    typeof before === "object" &&
+    typeof after === "object";
+
+  if (!bothObjects) {
+
+    if (JSON.stringify(before) !== JSON.stringify(after)) {
+      out.push({
+        path: path || "(root)",
+        before: JSON.stringify(before)?.slice(0, 200),
+        after: JSON.stringify(after)?.slice(0, 200)
+      });
+    }
+
+    return out;
+  }
+
+  const keys =
+    new Set([
+      ...Object.keys(before),
+      ...Object.keys(after)
+    ]);
+
+  for (const key of keys) {
+    collectMeaningfulDifferences(
+      before[key],
+      after[key],
+      Array.isArray(before) ? `${path}[${key}]` : (path ? `${path}.${key}` : key),
+      out
+    );
+  }
+
+  return out;
+}
+
+
+function logModifiedDifferences(
+  comparison
+) {
+
+  for (const entry of comparison.modified) {
+    console.log(
+      `FlowLenZ diff: ${getDisplayActionName(entry.after)}`,
+      collectMeaningfulDifferences(
+        getMeaningfulObject(entry.before),
+        getMeaningfulObject(entry.after),
+        "",
+        []
+      )
+    );
+  }
+}
+
+
 function getMeaningfulFingerprint(
   item
 ) {
@@ -2565,7 +2631,14 @@ function analyzeBranchImpact(
   const impact = {
     newBranches: 0,
     removedBranches: 0,
-    changedBranches: 0
+    changedBranches: 0,
+    addedBlocks: 0,
+    newOnAddedBlocks: 0,
+    newOnExisting: [],
+    rerouted: [],
+    removedBlocks: 0,
+    removedWithBlocks: 0,
+    removedOnExisting: []
   };
 
   if (!beforeConfiguration || !afterConfiguration) {
@@ -2582,33 +2655,61 @@ function analyzeBranchImpact(
 
     if (!previous) {
       impact.newBranches += labels.length;
+      impact.newOnAddedBlocks += labels.length;
+      impact.addedBlocks++;
       continue;
     }
 
     const previousLabels = getBranchLabels(previous);
+    const name = getBranchBlockName(block.action);
+    const added = [];
+    const rerouted = [];
 
     for (const label of labels) {
 
       if (!previousLabels.includes(label)) {
-        impact.newBranches++;
+        added.push(label);
       } else if ((previous.targets.get(label) || "") !== (block.targets.get(label) || "")) {
-        impact.changedBranches++;
+        rerouted.push(label);
       }
     }
 
-    impact.removedBranches += previousLabels.filter(
+    const removed = previousLabels.filter(
       (label) => !labels.includes(label)
-    ).length;
+    );
+
+    impact.newBranches += added.length;
+    impact.changedBranches += rerouted.length;
+    impact.removedBranches += removed.length;
+
+    if (added.length) impact.newOnExisting.push({ name, labels: added });
+    if (rerouted.length) impact.rerouted.push({ name, labels: rerouted });
+    if (removed.length) impact.removedOnExisting.push({ name, labels: removed });
   }
 
   for (const [key, block] of before) {
 
     if (!after.has(key)) {
-      impact.removedBranches += getBranchLabels(block).length;
+      const count = getBranchLabels(block).length;
+      impact.removedBranches += count;
+      impact.removedWithBlocks += count;
+      impact.removedBlocks++;
     }
   }
 
   return impact;
+}
+
+
+function getBranchBlockName(action) {
+
+  return getDisplayActionName({
+    kind: "action",
+    object: action,
+    action,
+    name: getActionName(action),
+    type: action.__type
+  });
 }
 
 
@@ -3108,24 +3209,62 @@ function formatBranchImpactLines(
   impact
 ) {
 
+  const plural = (count, word) =>
+    `${count} ${word}${count === 1 ? "" : word.endsWith("ch") ? "es" : "s"}`;
+
+  const describeBlocks = (entries) => {
+    const shown = entries
+      .slice(0, 3)
+      .map((entry) => `${entry.labels.join(", ")} on ${entry.name}`);
+    if (entries.length > 3) shown.push(`+${entries.length - 3} more`);
+    return shown.join("; ");
+  };
+
   const lines =
     [];
 
   if (impact.newBranches > 0) {
+
+    const parts = [];
+
+    if (impact.newOnAddedBlocks > 0) {
+      const count = impact.newOnAddedBlocks === impact.newBranches ? "" : `${impact.newOnAddedBlocks} `;
+      parts.push(`${count}from ${plural(impact.addedBlocks, "added block")}`);
+    }
+
+    if (impact.newOnExisting?.length) {
+      parts.push(describeBlocks(impact.newOnExisting));
+    }
+
     lines.push(
-      `${impact.newBranches} new branch${impact.newBranches > 1 ? "es" : ""}`
+      `${plural(impact.newBranches, "new branch")}` +
+      (parts.length ? ` — ${parts.join("; ")}` : "")
     );
   }
 
   if (impact.changedBranches > 0) {
     lines.push(
-      `${impact.changedBranches} existing branch${impact.changedBranches > 1 ? "es" : ""} changed`
+      `${plural(impact.changedBranches, "existing branch")} rerouted` +
+      (impact.rerouted?.length ? ` — ${describeBlocks(impact.rerouted)}` : "")
     );
   }
 
   if (impact.removedBranches > 0) {
+
+    const parts = [];
+
+    if (impact.removedWithBlocks > 0) {
+      const count = impact.removedWithBlocks === impact.removedBranches ? "" : `${impact.removedWithBlocks} `;
+      parts.push(`${count}with ${plural(impact.removedBlocks, "removed block")}`);
+    }
+
+    if (impact.removedOnExisting?.length) {
+      parts.push(describeBlocks(impact.removedOnExisting));
+    }
+
     lines.push(
-      `${impact.removedBranches} branch${impact.removedBranches > 1 ? "es" : ""} removed`
+      `${plural(impact.removedBranches, "branch")} removed` +
+      (parts.length ? ` — ${parts.join("; ")}` : "")
     );
   }
 
@@ -3646,6 +3785,31 @@ function renderPotentialRegressionContent(
 }
 
 
+// Text-safe shades of the Visual Change Report legend colours.
+const CHANGE_COLORS = {
+  added: "#1e7e34",
+  modified: "#e8590c",
+  removed: "#c82333"
+};
+
+const SEVERITY_COLORS = {
+  High: "#c82333",
+  Medium: "#e8590c",
+  Low: "#1e7e34"
+};
+
+
+function colorText(
+  html,
+  color
+) {
+
+  return color
+    ? `<span style="color: ${color};">${html}</span>`
+    : html;
+}
+
+
 function renderChangeScope(
 comparison
 ) {
@@ -3665,7 +3829,7 @@ if (
     comparison.added
       .map(
         (item) =>
-          `+ ${escapeHtml(
+          `${colorText("+", CHANGE_COLORS.added)} ${escapeHtml(
             getDisplayActionName(
               item
             )
@@ -3676,7 +3840,7 @@ if (
 
   sections.push(
     `<div>` +
-    `<div style="padding-left: 24px;"><strong>Added</strong></div>` +
+    `<div style="padding-left: 24px;"><strong style="color: ${CHANGE_COLORS.added};">Added</strong></div>` +
     `<div style="padding-left: 24px;">${values}</div>` +
     `</div>`
   );
@@ -3694,7 +3858,7 @@ if (
     comparison.removed
       .map(
         (item) =>
-          `- ${escapeHtml(
+          `${colorText("-", CHANGE_COLORS.removed)} ${escapeHtml(
             getDisplayActionName(
               item
             )
@@ -3705,7 +3869,7 @@ if (
 
   sections.push(
     `<div>` +
-    `<div style="padding-left: 24px;"><strong>Removed</strong></div>` +
+    `<div style="padding-left: 24px;"><strong style="color: ${CHANGE_COLORS.removed};">Removed</strong></div>` +
     `<div style="padding-left: 24px;">${values}</div>` +
     `</div>`
   );
@@ -3725,7 +3889,7 @@ if (
         (item) => {
 
           const header =
-            `~ ${escapeHtml(
+            `${colorText("~", CHANGE_COLORS.modified)} ${escapeHtml(
               getDisplayActionName(
                 item.after
               )
@@ -3756,10 +3920,15 @@ if (
 
   sections.push(
     `<div>` +
-    `<div style="padding-left: 24px;"><strong>Modified</strong></div>` +
+    `<div style="padding-left: 24px;"><strong style="color: ${CHANGE_COLORS.modified};">Modified</strong></div>` +
     `<div style="padding-left: 24px;">${values}</div>` +
     `</div>`
   );
+}
+
+
+if (sections.length === 0) {
+  return `<div style="padding-left: 24px;">${renderBulletLines(["No blocks are impacted"])}</div>`;
 }
 
 
@@ -4222,7 +4391,7 @@ const RISK_RULES = [
           createRiskIssue(
             rule,
             item,
-            `${label} branch has no action`,
+            `"${label} branch" → Has no action`,
             path.outputId ||
             label
           )
@@ -4288,7 +4457,7 @@ const RISK_RULES = [
         createRiskIssue(
           rule,
           item,
-          `Condition is always ${conditionText}; ${unreachableBranch} branch cannot be reached`,
+          `"${unreachableBranch} branch" → Can never be reached (condition is always ${conditionText})`,
           "constant-condition"
         )
       ];
@@ -4362,7 +4531,7 @@ const RISK_RULES = [
           createRiskIssue(
             rule,
             item,
-            `${label} has no action`,
+            `"${label}" → Has no action`,
             path.outputId ||
             label
           )
@@ -4415,7 +4584,7 @@ const RISK_RULES = [
         createRiskIssue(
           rule,
           item,
-          "Loop body has no action",
+          `"Loop body" → Has no action`,
           "loop-body"
         )
       ];
@@ -4467,7 +4636,7 @@ const RISK_RULES = [
         createRiskIssue(
           rule,
           item,
-          "Failure path has no recovery handling",
+          `"Failure path" → Has no recovery handling`,
           "failure"
         )
       ];
@@ -4519,7 +4688,7 @@ const RISK_RULES = [
         createRiskIssue(
           rule,
           item,
-          "Timeout path has no recovery handling",
+          `"Timeout path" → Has no recovery handling`,
           "timeout"
         )
       ];
@@ -4649,6 +4818,21 @@ function renderRiskValidation(
 }
 
 
+function formatRiskMessage(
+  message
+) {
+
+  const match =
+    /^("[^"]+")\s*→\s*(.*)$/.exec(
+      String(message)
+    );
+
+  return match
+    ? `<strong>${escapeHtml(match[1])}</strong> → ${escapeHtml(match[2])}`
+    : escapeHtml(message);
+}
+
+
 function buildRiskReport(
   deltaRisks,
   emptyMessage
@@ -4695,15 +4879,16 @@ function buildRiskReport(
         (issue) => {
 
           const header =
-            `[${escapeHtml(
-              issue.severity
-            )}] ${escapeHtml(
+            `${colorText(
+              `[${escapeHtml(issue.severity)}]`,
+              SEVERITY_COLORS[issue.severity]
+            )} ${escapeHtml(
               issue.actionName
             )}`;
 
 
           const message =
-            escapeHtml(
+            formatRiskMessage(
               issue.message
             );
 
@@ -5927,6 +6112,11 @@ function renderPublishedOnlyState() {
 
     console.log(
       "FlowLenZ Changes:",
+      comparison
+    );
+
+
+    logModifiedDifferences(
       comparison
     );
 

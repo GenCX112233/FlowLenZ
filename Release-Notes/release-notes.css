@@ -78,8 +78,16 @@ body {
 }
 
 @media print {
+  @page {
+    margin: 12mm;
+  }
+
   body {
     background: #fff;
+  }
+
+  .rn-header {
+    padding: 0 0 8px;
   }
 
   .rn-toolbar {
@@ -87,11 +95,16 @@ body {
   }
 
   .rn-content {
-    margin: 16px 0;
+    display: block;
+    margin: 12px 0 0;
     max-width: none;
   }
 
   .rn-section {
-    break-inside: avoid;
+    margin-bottom: 12px;
+  }
+
+  .rn-section h2 {
+    break-after: avoid;
   }
 }
