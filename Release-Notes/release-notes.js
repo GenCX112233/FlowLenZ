@@ -57,6 +57,10 @@ function render(data) {
     addLine(metaElement, data.detail);
   }
 
+  if (data.publishedBy) {
+    addLine(metaElement, `Published by: ${data.publishedBy}`);
+  }
+
   if (data.generatedAt) {
     addLine(metaElement, `Generated: ${data.generatedAt}`);
   }

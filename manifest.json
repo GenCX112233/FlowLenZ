@@ -73,7 +73,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "genesys-logo-flowlenz.png"
+        "genesys-logo-flowlenz.png",
+        "FlowLenZ-logo-light.png"
       ],
       "matches": [
         "https://*.mypurecloud.com/*"

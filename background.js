@@ -8,7 +8,7 @@ const API_URL =
   "https://api.mypurecloud.com";
 
 const SCOPE =
-  "architect:readonly";
+  "architect:readonly users:readonly";
 
 
 function base64UrlEncode(buffer) {
@@ -188,7 +188,10 @@ async function authenticateGenesys() {
       tokenData.access_token,
 
     genesysExpiresAt:
-      expiresAt
+      expiresAt,
+
+    genesysScope:
+      SCOPE
   });
 
   return tokenData.access_token;
@@ -199,11 +202,14 @@ async function getAccessToken() {
   const stored =
     await chrome.storage.local.get([
       "genesysAccessToken",
-      "genesysExpiresAt"
+      "genesysExpiresAt",
+      "genesysScope"
     ]);
 
+  // Tokens issued before a scope change lack the new permissions; sign in again.
   if (
     stored.genesysAccessToken &&
+    stored.genesysScope === SCOPE &&
     stored.genesysExpiresAt &&
     stored.genesysExpiresAt >
       Date.now() + 60000
@@ -427,6 +433,35 @@ chrome.runtime.onMessage.addListener(
               success: true,
               configuration:
                 configuration
+            });
+          }
+        )
+        .catch(
+          (error) => {
+            sendResponse({
+              success: false,
+              error: error.message
+            });
+          }
+        );
+
+      return true;
+    }
+
+
+    if (
+      message.type ===
+      "GET_USER_NAME"
+    ) {
+
+      genesysGet(
+        `/api/v2/users/${encodeURIComponent(message.userId)}`
+      )
+        .then(
+          (user) => {
+            sendResponse({
+              success: true,
+              name: user?.name || ""
             });
           }
         )

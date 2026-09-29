@@ -21,6 +21,10 @@
     "genesys-logo-flowlenz.png"
   );
 
+  const brandLogoUrl = chrome.runtime.getURL(
+    "FlowLenZ-logo-light.png"
+  );
+
   let publishedConfiguration = null;
   let savedConfiguration = null;
 
@@ -45,17 +49,11 @@
           alt="Genesys"
         />
 
-        <div class="flowlenz-title-area">
-
-          <div class="flowlenz-title">
-            FlowLenZ
-          </div>
-
-          <div class="flowlenz-subtitle">
-            AI Assistant
-          </div>
-
-        </div>
+        <img
+          class="flowlenz-brand-logo"
+          src="${brandLogoUrl}"
+          alt="FlowLenZ — AI Assistant for Genesys Cloud Architect"
+        />
 
       </div>
 
@@ -214,6 +212,17 @@
             "
           ></div>
 
+          <div
+            id="flowlenz-validation"
+            class="flowlenz-section-status"
+            style="
+              margin-top: 10px;
+              font-size: 13px;
+              line-height: 1.7;
+              overflow-wrap: anywhere;
+            "
+          ></div>
+
         </div>
 
 
@@ -232,7 +241,7 @@
           <div
             id="flowlenz-release-status"
             class="flowlenz-section-status"
-            style="font-size: 12px;"
+            style="font-size: 12px; white-space: pre-line;"
           >
             Waiting for published versions...
           </div>
@@ -307,6 +316,9 @@
 
   const visualReportOpenButton =
     root.querySelector("#flowlenz-visual-report-open");
+
+  const validationElement =
+    root.querySelector("#flowlenz-validation");
 
   const releaseVersionSelect =
     root.querySelector("#flowlenz-release-version");
@@ -2726,52 +2738,154 @@ function isDataActionType(
 }
 
 
+const REFERENCE_SKIP_KEYS =
+  new Set([
+    "paths",
+    "cases",
+    "actions",
+    "outputs",
+    "nextAction",
+    "nextActionId",
+    "uiMetaData",
+    "__type",
+    "id"
+  ]);
+
+
+/*
+ * Every named reference inside one block (not its branches):
+ * [{ path: "dataAction.config.ref", text: "Get Account" }, ...]
+ */
+function collectActionReferences(
+  action
+) {
+
+  const refs = [];
+  const seen = new Set();
+
+  const push = (path, text) => {
+    const value = typeof text === "string" ? text.trim() : "";
+    const key = `${path}|${value}`;
+    if (!value || seen.has(key)) return;
+    seen.add(key);
+    refs.push({ path, text: value });
+  };
+
+  const visit = (value, path, depth) => {
+
+    if (!value || typeof value !== "object" || depth > 6 || refs.length > 80) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((child, index) => visit(child, `${path}[${index}]`, depth + 1));
+      return;
+    }
+
+    if (depth > 0 && isArchitectAction(value)) {
+      return;
+    }
+
+    if (depth > 0) {
+      push(path, value.text);
+      push(`${path}.lit`, value.config?.lit?.text);
+      push(`${path}.ref`, value.config?.ref?.text);
+
+      if (value.id && typeof value.name === "string") {
+        push(`${path}.name`, value.name);
+      }
+    }
+
+    for (const [key, child] of Object.entries(value)) {
+
+      if (REFERENCE_SKIP_KEYS.has(key)) {
+        continue;
+      }
+
+      const childPath = path ? `${path}.${key}` : key;
+
+      if (typeof child === "string" && depth > 0 && /name$/i.test(key)) {
+        push(childPath, child);
+      } else if (typeof child === "string" && depth === 0 && /name$/i.test(key) && key !== "name") {
+        push(childPath, child);
+      } else {
+        visit(child, childPath, depth + 1);
+      }
+    }
+  };
+
+  visit(action, "", 0);
+
+  return refs;
+}
+
+
+function findReferenceTexts(
+  refs,
+  include,
+  exclude
+) {
+
+  return [
+    ...new Set(
+      refs
+        .filter((ref) => include.test(ref.path) && !(exclude && exclude.test(ref.path)))
+        .map((ref) => ref.text)
+    )
+  ];
+}
+
+
+function cleanPromptText(
+  text
+) {
+
+  const names =
+    [...String(text).matchAll(/Prompt\.([A-Za-z0-9_]+)/g)].map((match) => match[1]);
+
+  for (const match of String(text).matchAll(/ToAudioTTS\(\s*"([^"]*)"/gi)) {
+    names.push(`TTS "${match[1].slice(0, 50)}${match[1].length > 50 ? "…" : ""}"`);
+  }
+
+  if (names.length > 0) {
+    return names;
+  }
+
+  // Audio options such as ', false, true' are playback flags, not prompt names.
+  const cleaned =
+    String(text).replace(/,\s*(true|false)\b/gi, "").trim();
+
+  if (!cleaned || /^(true|false|-?\d+(\.\d+)?)$/i.test(cleaned)) {
+    return [];
+  }
+
+  return [cleaned.length > 60 ? `${cleaned.slice(0, 60)}…` : cleaned];
+}
+
+
+function getPlayAudioReferences(
+  action
+) {
+
+  if (!action) {
+    return [];
+  }
+
+  const texts =
+    findReferenceTexts(
+      collectActionReferences(action),
+      /prompt|audio|tts|media|file|playlist/i
+    );
+
+  return [...new Set(texts.flatMap(cleanPromptText))].sort();
+}
+
+
 function getPlayAudioReferenceText(
   action
 ) {
 
-  if (
-    !action
-  ) {
-
-    return "";
-  }
-
-
-  const candidates = [
-    action.audio,
-    action.prompt,
-    action.file,
-    action.tts,
-    action.voice,
-    action.uri,
-    action.resource,
-    action.media,
-    action.playlist
-  ];
-
-
-  for (
-    const candidate
-    of candidates
-  ) {
-
-    const text =
-      getConfiguredReferenceText(
-        candidate
-      );
-
-
-    if (
-      text
-    ) {
-
-      return text;
-    }
-  }
-
-
-  return "";
+  return getPlayAudioReferences(action).join(", ");
 }
 
 
@@ -2779,33 +2893,212 @@ function getDataActionReferenceLabel(
   action
 ) {
 
-  if (
-    !action
-  ) {
-
+  if (!action) {
     return "Data Action";
   }
 
+  const refs =
+    collectActionReferences(action);
+
+  const name =
+    findReferenceTexts(
+      refs,
+      /dataAction|actionName|actionRef|(^|\.)action(\.|$)/i,
+      /integration|category|input/i
+    )[0] || "";
+
+  if (name) {
+    return name;
+  }
 
   return (
-    getConfiguredReferenceText(
-      action.integration
-    ) ||
-    getConfiguredReferenceText(
-      action.category
-    ) ||
-    getConfiguredReferenceText(
-      action.dataAction
-    ) ||
-    getActionName(
-      action
-    )
+    getConfiguredReferenceText(action.integration) ||
+    getConfiguredReferenceText(action.category) ||
+    findReferenceTexts(refs, /integration|category/i)[0] ||
+    getActionName(action)
   );
 }
 
 
+function getFlowDependencyKind(
+  action,
+  path
+) {
+
+  const type = String(action?.__type || "");
+
+  if (/inQueue/i.test(path)) return "In-queue flow";
+  if (/Bot/i.test(type) || /bot/i.test(path)) return "Bot flow";
+  if (/CommonModule/i.test(type) || /module/i.test(path)) return "Common module";
+  if (/Secure/i.test(type)) return "Secure flow";
+  return "Flow";
+}
+
+
+/*
+ * Flows this block calls or hands off to (bot flows, common modules,
+ * transfer-to-flow, in-queue flows), as "Kind: Name" labels.
+ */
+function getFlowReferences(
+  action
+) {
+
+  if (!action) {
+    return [];
+  }
+
+  const refs =
+    collectActionReferences(action).filter(
+      (ref) => /flow|bot|module/i.test(ref.path) && !/variable|input/i.test(ref.path)
+    );
+
+  return [
+    ...new Set(
+      refs.map((ref) => `${getFlowDependencyKind(action, ref.path)}: ${ref.text}`)
+    )
+  ].sort();
+}
+
+
+const VARIABLE_TOKEN =
+  /\b(?:Task|Flow|State)\.[A-Za-z_][A-Za-z0-9_]*/g;
+
+
+/*
+ * Variables a block touches: `written` = in assignment/output positions,
+ * `all` = anywhere in the block (excluding its branches).
+ */
+function getBlockVariableUse(
+  action
+) {
+
+  const written = new Set();
+  const all = new Set();
+
+  const visit = (value, path, depth) => {
+
+    if (value === null || value === undefined || depth > 8) {
+      return;
+    }
+
+    if (typeof value === "string") {
+      for (const match of value.matchAll(VARIABLE_TOKEN)) {
+        all.add(match[0]);
+        if (/variable|output|result|assign/i.test(path)) {
+          written.add(match[0]);
+        }
+      }
+      return;
+    }
+
+    if (typeof value !== "object") {
+      return;
+    }
+
+    if (depth > 0 && isArchitectAction(value)) {
+      return;
+    }
+
+    for (const [key, child] of Object.entries(value)) {
+      if (!["paths", "cases", "actions", "nextAction", "nextActionId", "uiMetaData"].includes(key)) {
+        visit(child, path ? `${path}.${key}` : key, depth + 1);
+      }
+    }
+  };
+
+  visit(action, "", 0);
+
+  return { written, all };
+}
+
+
+/*
+ * Blocks that call another flow (bot flow, common module, ...) whose inputs
+ * read a variable set by a changed block — the called flow receives different
+ * data even though the calling block itself was not edited.
+ */
+function addFlowInputDependencies(
+  comparison,
+  afterConfiguration,
+  addResourceLine,
+  setBlockName
+) {
+
+  if (!afterConfiguration) {
+    return;
+  }
+
+  const changedVariables = new Map();
+
+  const recordWrites = (item) => {
+
+    const object = item?.object || item?.action;
+
+    if (!object || item.kind !== "action") {
+      return;
+    }
+
+    for (const variable of getBlockVariableUse(object).written) {
+      if (!changedVariables.has(variable)) {
+        changedVariables.set(variable, getBranchBlockName(object));
+      }
+    }
+  };
+
+  comparison.added.forEach(recordWrites);
+  comparison.removed.forEach(recordWrites);
+  comparison.modified.forEach((change) => {
+    recordWrites(change.before);
+    recordWrites(change.after);
+  });
+
+  if (changedVariables.size === 0) {
+    return;
+  }
+
+  for (const item of extractActions(afterConfiguration)) {
+
+    if (item.kind !== "action") {
+      continue;
+    }
+
+    const flows = getFlowReferences(item.object);
+
+    if (flows.length === 0) {
+      continue;
+    }
+
+    const used = getBlockVariableUse(item.object).all;
+
+    const blockName = getBranchBlockName(item.object);
+
+    const inputs = [...changedVariables.entries()].filter(
+      ([variable, changedBy]) => used.has(variable) && changedBy !== blockName
+    );
+
+    if (inputs.length === 0) {
+      continue;
+    }
+
+    setBlockName(blockName);
+
+    for (const flow of flows) {
+      for (const [variable, changedBy] of inputs) {
+        addResourceLine(
+          "flows",
+          `~ ${flow} (input ${variable} changed${changedBy ? ` in ${changedBy}` : ""})`
+        );
+      }
+    }
+  }
+
+  setBlockName("");
+}
+
+
 function analyzeDependencyImpact(
-  comparison
+  comparison,
+  afterConfiguration = savedConfiguration
 ) {
 
   const dependencyGroups = {
@@ -2819,18 +3112,80 @@ function analyzeDependencyImpact(
     promptsAudio:
       new Set(),
 
+    flows:
+      new Set(),
+
     reusableTasks:
       new Set()
   };
 
 
+  let currentBlockName =
+    "";
+
+
+  // "+ Queue: X" → "+ 18 Transfer to ACD — Queue: X" (block name as in Affected Blocks).
   function addResourceLine(
     group,
     line
   ) {
 
     dependencyGroups[group].add(
-      line
+      currentBlockName && /^[+\-~] /.test(line)
+        ? `${line.slice(0, 2)}${currentBlockName} — ${line.slice(2)}`
+        : line
+    );
+  }
+
+
+  /*
+   * Added / removed blocks list every reference; modified blocks list only
+   * references that appeared or disappeared (or "configuration changed" when
+   * the same references remain and reportUnchanged is set).
+   */
+  function addListDependencies(
+    group,
+    prefix,
+    beforeList,
+    afterList,
+    changeType,
+    reportUnchanged
+  ) {
+
+    if (changeType === "Added") {
+      afterList.forEach((name) => addResourceLine(group, `+ ${prefix}${name}`));
+      return;
+    }
+
+    if (changeType === "Removed") {
+      afterList.forEach((name) => addResourceLine(group, `- ${prefix}${name}`));
+      return;
+    }
+
+    const added = afterList.filter((name) => !beforeList.includes(name));
+    const removed = beforeList.filter((name) => !afterList.includes(name));
+
+    added.forEach((name) => addResourceLine(group, `+ ${prefix}${name}`));
+    removed.forEach((name) => addResourceLine(group, `- ${prefix}${name}`));
+
+    if (!added.length && !removed.length && reportUnchanged) {
+      addResourceLine(
+        group,
+        afterList.length
+          ? `~ ${prefix}${afterList.join(", ")} (configuration changed)`
+          : `~ ${prefix || "Configuration"} changed`
+      );
+    }
+  }
+
+
+  function logDependencyReferences(
+    object
+  ) {
+
+    console.log(
+      `FlowLenZ dependency refs: ${getBranchBlockName(object)}`,
+      collectActionReferences(object)
     );
   }
 
@@ -2840,6 +3195,11 @@ function analyzeDependencyImpact(
     changeType,
     beforeItem
   ) {
+
+    currentBlockName =
+      getDisplayActionName(
+        item
+      );
 
     if (
       item.kind ===
@@ -2899,84 +3259,37 @@ function analyzeDependencyImpact(
       item.object;
 
 
+    const beforeObject =
+      beforeItem?.object ||
+      beforeItem?.action;
+
+
+    addListDependencies(
+      "flows",
+      "",
+      getFlowReferences(beforeObject),
+      getFlowReferences(object),
+      changeType,
+      false
+    );
+
+
     if (
       object?.__type ===
       "PlayAudioAction"
     ) {
 
-      if (
-        changeType ===
-        "Modified"
-      ) {
-
-        const beforeAction =
-          beforeItem?.object ||
-          beforeItem?.action;
-
-
-        const beforePrompt =
-          getPlayAudioReferenceText(
-            beforeAction
-          );
+      addListDependencies(
+        "promptsAudio",
+        "Prompt: ",
+        getPlayAudioReferences(beforeObject),
+        getPlayAudioReferences(object),
+        changeType,
+        true
+      );
 
 
-        const afterPrompt =
-          getPlayAudioReferenceText(
-            object
-          );
-
-
-        if (
-          beforePrompt !==
-          afterPrompt
-        ) {
-
-          addResourceLine(
-            "promptsAudio",
-            `~ Prompt: ${beforePrompt || "None"} → ${afterPrompt || "None"}`
-          );
-
-        } else {
-
-          addResourceLine(
-            "promptsAudio",
-            "~ Prompt / audio configuration changed"
-          );
-        }
-
-
-        return;
-      }
-
-
-      const promptRef =
-        getPlayAudioReferenceText(
-          object
-        );
-
-
-      if (
-        changeType ===
-        "Added"
-      ) {
-
-        addResourceLine(
-          "promptsAudio",
-          promptRef
-            ? `+ Prompt: ${promptRef}`
-            : "+ Prompt / audio added"
-        );
-
-      } else {
-
-        addResourceLine(
-          "promptsAudio",
-          promptRef
-            ? `- Prompt: ${promptRef}`
-            : "- Prompt / audio removed"
-        );
-      }
-
+      logDependencyReferences(object);
 
       return;
     }
@@ -3016,12 +3329,21 @@ function analyzeDependencyImpact(
 
       } else {
 
+        const beforeLabel =
+          getDataActionReferenceLabel(
+            beforeObject
+          );
+
         addResourceLine(
           "dataActions",
-          `~ Data Action: ${label} (configuration changed)`
+          beforeLabel !== label
+            ? `~ Data Action: ${beforeLabel} → ${label}`
+            : `~ Data Action: ${label} (configuration changed)`
         );
       }
 
+
+      logDependencyReferences(object);
 
       return;
     }
@@ -3172,6 +3494,16 @@ function analyzeDependencyImpact(
   );
 
 
+  addFlowInputDependencies(
+    comparison,
+    afterConfiguration,
+    addResourceLine,
+    (blockName) => {
+      currentBlockName = blockName;
+    }
+  );
+
+
   return dependencyGroups;
 }
 
@@ -3275,12 +3607,14 @@ function formatBranchImpactLines(
 
 
 function renderDependencyImpactContent(
-  comparison
+  comparison,
+  afterConfiguration = savedConfiguration
 ) {
 
   const dependencyImpact =
     analyzeDependencyImpact(
-      comparison
+      comparison,
+      afterConfiguration
     );
 
 
@@ -3336,6 +3670,12 @@ function renderDependencyImpactContent(
   renderDependencyGroup(
     "Prompts / Audio",
     dependencyImpact.promptsAudio
+  );
+
+
+  renderDependencyGroup(
+    "Flows",
+    dependencyImpact.flows
   );
 
 
@@ -4009,7 +4349,8 @@ sections.push(
 
 const dependencyContent =
   renderDependencyImpactContent(
-    comparison
+    comparison,
+    afterConfiguration
   );
 
 
@@ -4923,6 +5264,9 @@ function renderPublishedOnlyState() {
   lastComparison =
     null;
 
+  validationElement.innerHTML =
+    "";
+
   lastReportMeta = {
     flowName:
       flowNameElement.textContent ||
@@ -5703,6 +6047,365 @@ function renderPublishedOnlyState() {
 
   /*
    * =====================================
+   * FLOW VALIDATION (Genesys Architect Validate list)
+   * Read from the Architect page after the user clicks Validate — the one
+   * exception to "APIs only", approved 2026-09-29. Located by its footer
+   * text rather than Architect's internal class names.
+   * =====================================
+   */
+
+  const VALIDATION_FOOTER_TEXT =
+    "Press validate again to refresh list";
+
+  let lastValidationRows =
+    null;
+
+
+  // SVG icons have no innerText; treat them as empty.
+  function getVisibleLines(
+    element
+  ) {
+
+    if (!(element instanceof HTMLElement)) {
+      return [];
+    }
+
+    return element.innerText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  function findValidationFooters() {
+
+    const snapshot =
+      document.evaluate(
+        `//*[contains(normalize-space(.), '${VALIDATION_FOOTER_TEXT}') and not(*[contains(normalize-space(.), '${VALIDATION_FOOTER_TEXT}')])]`,
+        document.body,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null
+      );
+
+    const footers = [];
+
+    for (let index = 0; index < snapshot.snapshotLength; index++) {
+
+      const node = snapshot.snapshotItem(index);
+
+      if (!root.contains(node)) {
+        footers.push(node);
+      }
+    }
+
+    return footers;
+  }
+
+
+  function isRendered(
+    element
+  ) {
+
+    return (
+      element.getClientRects().length > 0 &&
+      getComputedStyle(element).visibility !== "hidden"
+    );
+  }
+
+
+  /*
+   * Text pieces inside an element, read from the DOM (not rendering), so the
+   * Validate list can be read while Architect keeps it hidden (it only shows
+   * on CSS hover, which scripts cannot trigger).
+   */
+  function getTextChunks(
+    element
+  ) {
+
+    const chunks = [];
+
+    const walker =
+      document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
+        acceptNode: (node) =>
+          node.parentElement?.closest("svg, style, script")
+            ? NodeFilter.FILTER_REJECT
+            : NodeFilter.FILTER_ACCEPT
+      });
+
+    while (walker.nextNode()) {
+
+      const text =
+        walker.currentNode.textContent.replace(/\s+/g, " ").trim();
+
+      if (text) {
+        chunks.push(text);
+      }
+    }
+
+    return chunks;
+  }
+
+
+  /*
+   * Prefer a copy of the list that is on screen, otherwise the most recent
+   * hidden copy; never climb as far as the toolbar (which would read the
+   * "Validate 4" button as a row).
+   */
+  function findValidationPanel() {
+
+    const validateButton =
+      findArchitectValidateButton();
+
+    const footers =
+      findValidationFooters();
+
+    const ordered = [
+      ...footers.filter(isRendered),
+      ...footers.filter((footer) => !isRendered(footer)).reverse()
+    ];
+
+    for (const footer of ordered) {
+
+      let panel = footer.parentElement;
+
+      while (panel && panel !== document.body) {
+
+        if (validateButton && panel.contains(validateButton)) {
+          break;
+        }
+
+        if (getTextChunks(panel).length >= 3) {
+          return panel;
+        }
+
+        panel = panel.parentElement;
+      }
+    }
+
+    return null;
+  }
+
+
+  // Rows are the deepest elements whose text is exactly "block name / message".
+  function parseValidationRows(
+    panel
+  ) {
+
+    const rows = [];
+    const seen = new Set();
+
+    const validateButton =
+      findArchitectValidateButton();
+
+    for (const element of panel.querySelectorAll("*")) {
+
+      if (validateButton && (element.contains(validateButton) || validateButton.contains(element))) {
+        continue;
+      }
+
+      const lines =
+        getTextChunks(element);
+
+      if (
+        lines.length !== 2 ||
+        lines.includes(VALIDATION_FOOTER_TEXT) ||
+        /^\d+$/.test(lines[1])
+      ) {
+        continue;
+      }
+
+      const deeper =
+        [...element.children].some(
+          (child) => getTextChunks(child).length === 2
+        );
+
+      const key = lines.join("|");
+
+      if (deeper || seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+
+      rows.push({
+        blockName: lines[0],
+        message: lines[1]
+      });
+    }
+
+    return rows;
+  }
+
+
+  function captureValidationResults() {
+
+    const panel =
+      findValidationPanel();
+
+    if (!panel) {
+      return;
+    }
+
+    const rows =
+      parseValidationRows(panel);
+
+    // A hidden or half-rendered list parses as empty; never let that wipe real results.
+    if (rows.length === 0 && lastValidationRows?.length) {
+      return;
+    }
+
+    const signature =
+      JSON.stringify(rows);
+
+    if (signature === JSON.stringify(lastValidationRows)) {
+      return;
+    }
+
+    lastValidationRows = rows;
+
+    console.log(
+      "FlowLenZ validation: rows read",
+      rows
+    );
+
+    renderValidationSection();
+  }
+
+
+  function formatValidationMessage(
+    message
+  ) {
+
+    return escapeHtml(message).replace(
+      /&#039;([^&]+?)&#039;|'([^']+?)'/g,
+      (match, escaped, plain) => `<strong>"${escaped || plain}"</strong>`
+    );
+  }
+
+
+  function renderValidationSection() {
+
+    const heading =
+      `<div style="margin-top: 6px;"><strong>Flow Validation Errors</strong></div>`;
+
+    if (!lastComparison) {
+      validationElement.innerHTML = "";
+      return;
+    }
+
+    if (!lastValidationRows) {
+      validationElement.innerHTML =
+        heading +
+        `<div style="padding-left: 12px;">${renderBulletLines(["Click Validate in Architect to include Genesys validation results"])}</div>`;
+      return;
+    }
+
+    const changedBlocks =
+      [
+        ...lastComparison.added,
+        ...lastComparison.modified.map((entry) => entry.after)
+      ].filter((item) => item?.kind === "action");
+
+    const matches =
+      [];
+
+    for (const row of lastValidationRows) {
+
+      const rowName =
+        row.blockName.toLowerCase();
+
+      for (const item of changedBlocks) {
+
+        const object = item.object || item.action;
+        const name = String(getActionName(object) || "").toLowerCase();
+        const displayName = getDisplayActionName(item);
+
+        if (name === rowName || displayName.toLowerCase().endsWith(rowName)) {
+          matches.push({ ...row, displayName });
+        }
+      }
+    }
+
+    const body =
+      matches.length === 0
+        ? renderBulletLines(["No validation errors for changed blocks"])
+        : matches
+            .map(
+              (match) =>
+                `<div style="margin-bottom: 10px;">` +
+                `<div><strong>${escapeHtml(match.displayName)}</strong></div>` +
+                `<div style="padding-left: 12px;">${formatValidationMessage(match.message)}</div>` +
+                `</div>`
+            )
+            .join("");
+
+    validationElement.innerHTML =
+      heading +
+      `<div style="padding-left: 12px;">${body}</div>`;
+  }
+
+
+  // Architect uses Genesys (gux-*) custom elements as well as plain buttons.
+  function findArchitectValidateButton() {
+
+    const selector =
+      "button, [role='button'], gux-button, gux-button-slot, gux-action-button, a";
+
+    for (const element of document.querySelectorAll(selector)) {
+
+      if (root.contains(element)) {
+        continue;
+      }
+
+      const lines = getVisibleLines(element);
+
+      if (lines.length > 0 && /^Validate\b/i.test(lines[0])) {
+        return element;
+      }
+    }
+
+    const label =
+      document.evaluate(
+        "//*[normalize-space(text())='Validate']",
+        document.body,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      ).singleNodeValue;
+
+    if (label && !root.contains(label)) {
+      return label.closest(selector) || label;
+    }
+
+    return null;
+  }
+
+
+  let validationCaptureTimer =
+    null;
+
+
+  new MutationObserver(() => {
+
+    clearTimeout(validationCaptureTimer);
+
+    validationCaptureTimer =
+      setTimeout(captureValidationResults, 300);
+
+  }).observe(
+    document.body,
+    {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["style", "class", "hidden", "aria-hidden"]
+    }
+  );
+
+
+  /*
+   * =====================================
    * RELEASE NOTES (STEP 9)
    * Rebuilt on demand from Genesys versions: any published version vs the
    * one before it, plus the saved draft vs latest published (pre-publish
@@ -5757,11 +6460,56 @@ function renderPublishedOnlyState() {
       parts.push(`Published ${created.toLocaleString()}`);
     }
 
-    if (version?.createdBy?.name) {
-      parts.push(`by ${version.createdBy.name}`);
+    return parts.join(" ");
+  }
+
+
+  const releaseUserNameCache =
+    new Map();
+
+
+  // Version data may carry only the publisher's user id; look the name up once.
+  async function resolveReleasePublisher(
+    version
+  ) {
+
+    const user =
+      version?.createdBy;
+
+    if (user?.name) {
+      return user.name;
     }
 
-    return parts.join(" ");
+    if (!user?.id) {
+
+      console.log(
+        "FlowLenZ release: version has no createdBy user",
+        version
+      );
+
+      return "";
+    }
+
+    if (!releaseUserNameCache.has(user.id)) {
+
+      releaseUserNameCache.set(
+        user.id,
+        chrome.runtime
+          .sendMessage({ type: "GET_USER_NAME", userId: user.id })
+          .then((response) => {
+            if (!response?.success) {
+              console.log("FlowLenZ release: user name lookup failed", response?.error);
+            }
+            return response?.success ? response.name || "" : "";
+          })
+          .catch((error) => {
+            console.log("FlowLenZ release: user name lookup failed", error);
+            return "";
+          })
+      );
+    }
+
+    return releaseUserNameCache.get(user.id);
   }
 
 
@@ -5788,6 +6536,7 @@ function renderPublishedOnlyState() {
         versionLabel: `Version ${entry.identifier}`,
         previousLabel: previous ? `Version ${previous.identifier}` : "",
         detail: describeReleaseVersion(entry.version),
+        version: entry.version,
         loadCurrent: () => loadReleaseConfiguration(entry.version.configurationUri),
         loadPrevious: previous
           ? () => loadReleaseConfiguration(previous.version.configurationUri)
@@ -5817,7 +6566,7 @@ function renderPublishedOnlyState() {
       );
     }
 
-    return entries;
+    return entries.reverse();
   }
 
 
@@ -5874,12 +6623,18 @@ function renderPublishedOnlyState() {
             : Promise.resolve(null)
         ]);
 
+      const publishedBy =
+        entry.version
+          ? (await resolveReleasePublisher(entry.version)) || "Unknown"
+          : "";
+
       const payload = {
         generatedAt: new Date().toLocaleString(),
         flowName: releaseFlowName,
         versionLabel: entry.versionLabel,
         previousLabel: entry.previousLabel,
         detail: entry.detail,
+        publishedBy,
         firstPublish: !previousConfiguration,
         blockCount: extractActions(currentConfiguration).length,
         ...(previousConfiguration
@@ -5900,9 +6655,7 @@ function renderPublishedOnlyState() {
         );
       }
 
-      releaseStatusElement.textContent =
-        entry.detail ||
-        entry.label;
+      updateReleaseStatus();
 
     } catch (error) {
 
@@ -5969,14 +6722,14 @@ function renderPublishedOnlyState() {
       String(
         keptIndex >= 0
           ? keptIndex
-          : releaseEntries.length - 1
+          : 0
       );
 
     updateReleaseStatus();
   }
 
 
-  function updateReleaseStatus() {
+  async function updateReleaseStatus() {
 
     const entry =
       releaseEntries[Number(releaseVersionSelect.value)];
@@ -5985,6 +6738,20 @@ function renderPublishedOnlyState() {
       entry
         ? entry.detail || entry.label
         : "";
+
+    if (!entry?.version) {
+      return;
+    }
+
+    const publisher =
+      await resolveReleasePublisher(entry.version);
+
+    if (releaseEntries[Number(releaseVersionSelect.value)] !== entry) {
+      return;
+    }
+
+    releaseStatusElement.textContent =
+      `${entry.detail || entry.label}\nPublished by: ${publisher || "Unknown"}`;
   }
 
 
@@ -6108,6 +6875,9 @@ function renderPublishedOnlyState() {
     renderRiskValidation(
       deltaRisks
     );
+
+
+    renderValidationSection();
 
 
     console.log(
@@ -6411,17 +7181,23 @@ function renderPublishedOnlyState() {
         }
 
 
-        if (
-          panel.classList.contains(
-            "flowlenz-hidden"
-          )
-        ) {
+        // Open the panel on Save, scrolled to the top, so the analysis starts from the beginning.
+        panel.classList.remove(
+          "flowlenz-hidden"
+        );
 
-          return;
-        }
+        root
+          .querySelector(".flowlenz-content")
+          ?.scrollTo({ top: 0 });
 
 
         refreshAfterSave();
+
+
+        setTimeout(
+          captureValidationResults,
+          2500
+        );
       }
 
     }
