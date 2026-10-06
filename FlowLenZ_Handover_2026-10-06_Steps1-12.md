@@ -1,10 +1,10 @@
 # FlowLenZ — Handover Document
 
-**File:** `FlowLenZ_Handover_2026-10-03_Steps1-12.md` (the **only** handover — replace this file and delete the old one when a new dated handover is created)
+**File:** `FlowLenZ_Handover_2026-10-06_Steps1-12.md` (the **only** handover — replace this file and delete the old one when a new dated handover is created)
 **Project:** PS Hackathon 2026
 **Product name:** FlowLenZ (capital Z)
-**Date:** 2026-10-03
-**Steps completed:** **1–12 (ALL STEPS COMPLETE)**
+**Date:** 2026-10-06
+**Steps completed:** **1–12 (ALL STEPS COMPLETE)** — Steps 10–12 AI by Arun Govindan; 2026-10-06 polish + security fixes merged into `main` (GitHub `GenCX112233/FlowLenZ`, private)
 
 Progress table: [FlowLenZ_Completion_Tracker.md](./FlowLenZ_Completion_Tracker.md) · Install: [FlowLenZ_User_Guide.md](./FlowLenZ_User_Guide.md) · Use cases: [FlowLenZ_Use_Cases.md](./FlowLenZ_Use_Cases.md)
 
@@ -55,7 +55,9 @@ Developer lifecycle: `Edit → Save → FlowLenZ Update → Fix & re-save → Pu
 | Report pages | Panel button → **new tab** extension page + **Download PDF** (Visual Change Report, Release Notes) |
 | Release notes storage | **None** — rebuilt on demand from the versions API |
 | Region | `mypurecloud.com` / `api.mypurecloud.com` only |
-| AI service | Standalone Node.js Express service (`ai-service/`) on `localhost:3000`; shared-secret auth (`x-api-key` header); OpenAI `gpt-4o-mini` |
+| AI service | Standalone Node.js Express service (`ai-service/`) on `localhost:3000`; shared-secret auth (`x-api-key` header); OpenAI `gpt-4o-mini` (cloud). `GET /` = status JSON |
+| Secrets | **Never in git.** `ai-service/.env` (OPENAI_API_KEY, API_SECRET) and `browser-plugin/ai-config.js` (same secret) are git-ignored; only `.env.example` / `ai-config.example.js` are committed. `.env` loaded with `override: true` (a stale Windows `OPENAI_API_KEY` env var once overrode it) |
+| AI fallback | AI off / not configured / error / timeout (15 s impact, 30 s Q&A) → rule-based Customer Journey Impact and chat answers from flow data, marked "(Rule-based summary — AI service unavailable.)" |
 
 **API flow:** `GET /api/v2/flows/{flowId}` → `GET /api/v2/flows/{flowId}/versions` → `GET {configurationUri}` (published versions + saved) · `GET /api/v2/users/{id}` (Release Notes publisher name).
 
@@ -77,26 +79,29 @@ Both share `ARCHITECT_SEMANTICS` constant in `server.js`.
 
 ```text
 flowlenz/
-├── manifest.json          (MV3; host_permissions includes localhost:3000)
-├── background.js          (PKCE, API calls, GET_CUSTOMER_IMPACT, FLOW_QA → ai-service)
-├── content.js             (~4500 lines — all panel logic)
-├── content.css
-├── save-hook.js / save-bridge.js
-├── panel.html             (all panel sections; chat toolbar with SVG chevron; textarea input)
-├── genesys-logo-flowlenz*.png
-├── FlowLenZ-logo-light.png / FlowLenZ-logo-dark.png
-├── package.json
+├── browser-plugin/        ← load this folder as the unpacked extension
+│   ├── manifest.json      (MV3; host_permissions includes localhost:3000)
+│   ├── background.js      (PKCE, API calls, callAiService → GET_CUSTOMER_IMPACT, FLOW_QA)
+│   ├── ai-config.example.js  (copy to ai-config.js — git-ignored — with the shared secret)
+│   ├── content.js         (~4700 lines — all panel logic)
+│   ├── content.css
+│   ├── panel.html         (panel sections + chat; loaded by initPanel)
+│   ├── save-hook.js / save-bridge.js
+│   ├── genesys-logo-flowlenz*.png, FlowLenZ-logo-light.png / -dark.png
+│   ├── Visual-Diff/       (report.html, report.css, report-src.jsx, report-bundle.js, package.json)
+│   └── Release-Notes/     (release-notes.html, release-notes.css, release-notes.js)
 ├── ai-service/
-│   ├── server.js          (POST /flows/impact + POST /flows/qa; ARCHITECT_SEMANTICS; gpt-4o-mini)
+│   ├── server.js          (GET / status, POST /flows/impact, POST /flows/qa; gpt-4o-mini)
 │   ├── package.json
-│   └── .env.example       (OPENAI_API_KEY, API_SECRET, PORT=3000)
-├── Visual-Diff/           (report.html, report.css, report-src.jsx, report-bundle.js, package.json)
-├── Release-Notes/         (release-notes.html, release-notes.css, release-notes.js)
+│   └── .env.example       (OPENAI_API_KEY, API_SECRET, PORT=3000; real .env git-ignored)
+├── package.json           (npm run build:report)
 ├── FlowLenZ_Completion_Tracker.md
-├── FlowLenZ_Handover_2026-10-03_Steps1-12.md   ← this file (only handover)
+├── FlowLenZ_Handover_2026-10-06_Steps1-12.md   ← this file (only handover)
 ├── FlowLenZ_User_Guide.md
 └── FlowLenZ_Use_Cases.md
 ```
+
+**Extension ID note:** an unpacked extension's ID comes from its folder path. Loading `browser-plugin/` gave a new ID — its `https://<id>.chromiumapp.org/` redirect was **added to the same OAuth client** (no new client needed).
 
 ---
 
@@ -110,10 +115,10 @@ flowlenz/
 | **Change Report** | Published / saved version labels, config status, refresh status |
 | **Visual Change Report** | Status + Open Visual Change Report button |
 | **Change Impact Analysis** | Affected Blocks · Affected Branches · Affected dependencies · Potential regression |
-| **Customer Impact** | AI narrative (2–4 sentences) + ↺ Regenerate button |
+| **Customer Journey Impact** | Short AI narrative (2–3 sentences, ≤45 words, ~5–6 lines) refreshed on Save; rule-based fallback. No Regenerate button |
 | **Lint & Risk** | Delta-only logical findings + Flow Validation Errors |
 | **Release Notes** | Version picker + Published by + Open Release Notes button |
-| **Chat** | "Ask FlowLenZ" toolbar (SVG chevron toggle) + message bubbles + auto-grow textarea |
+| **Chat** | "Ask FlowLenZ" toolbar + input always visible; full-screen when used; Send + Clear |
 
 ---
 
@@ -129,8 +134,8 @@ flowlenz/
 | 6 | Change Impact Analysis — Blocks, Branches, Dependencies, Potential regression |
 | 7 | Lint & Risk — delta-only RISK_RULES + Flow Validation Errors from Architect DOM |
 | 8 | Visual Change Report — dagre graph, direction/view toggles, Connections table, PDF |
-| 9 | Release Notes — version picker newest first, Published by, separate page, PDF |
-| 10 | Customer Impact — AI narrative from deterministic facts; ↺ Regenerate; in Release Notes page |
+| 9 | Release Notes — version picker newest first, Published by, separate page, PDF. Page sections: Summary · Customer Journey Impact · Change Impact Analysis · **Lint & Risk** (added 2026-10-06) |
+| 10 | Customer Journey Impact — short AI narrative from deterministic facts; rule-based fallback; also in Release Notes page |
 
 ---
 
@@ -178,13 +183,14 @@ Key design decisions:
 - Lint via `getAllRisks(configuration)` — full flow, not delta-only
 - Architect validation errors from `lastValidationRows` (populated after user clicks Validate)
 - Added blocks marked `(added)` by comparing against published model node keys
-- `chatFlowContext` rebuilt on every `applyContext` call
+- `chatFlowContext` rebuilt on every `applyContext` call — from the **saved** version (vs published) or, if nothing is saved, from the **published** version (`Version:` line in context)
 
 ### 7.2 Chat UI
 
-- Toolbar: "Ask FlowLenZ" label + SVG chevron toggle (20×20 codicon-style)
-- Minimised: hides messages + input row via `.flowlenz-chat-minimised`
-- Chevron-down = expanded; chevron-up = minimised
+- Two states only (`setChatFullScreen`): **minimised** (toolbar + input visible, messages hidden, sections visible, chevron ^) and **full screen** (`.flowlenz-chat-full` hides sections; chat fills the panel below the header, chevron ⌄)
+- Full screen on input focus, Send, or clicking "Ask FlowLenZ"; chevron ⌄ minimises; Save returns to sections scrolled to top
+- **Clear** button (after Send) empties messages, input and chat history
+- Placeholder: "Ask about your Flow"
 - Bubbles: `.user` (orange, right) / `.ai` (grey, left)
 - AI bubbles render markdown via inline `parseMarkdown` (bold, bullets, inline code, paragraphs)
 - Input: `<textarea>` auto-grows to 3 lines, then scrolls; Enter = send, Shift+Enter = newline
@@ -219,7 +225,7 @@ Key design decisions:
   - Gives concrete advice using Architect block types by name
   - References existing blocks in the flow where relevant
   - Uses bullet points for steps/options
-- Chat placeholder updated to `"Ask about this flow or get build guidance..."`
+- Chat placeholder: `"Ask about your Flow"` (changed 2026-10-06)
 - No new endpoints, no new UI — same chat, same context, same history
 
 **AI service (`server.js`):**
@@ -234,18 +240,20 @@ Key design decisions:
 ```bash
 cd ai-service
 cp .env.example .env   # fill in OPENAI_API_KEY and API_SECRET
-npm start
+npm install
+npm start              # check http://localhost:3000 → status JSON
 ```
 
-`AI_SERVICE_SECRET` in `background.js` must match `API_SECRET` in `.env`.
+Copy `browser-plugin/ai-config.example.js` → `browser-plugin/ai-config.js` and set `secret` = `API_SECRET` from `.env`. Both files are git-ignored. If the secret is missing, AI calls are skipped and the fallback is used.
 
 ---
 
 ## 10. Known limitations
 
-- AI service must be running locally on port 3000 for Customer Impact and Chat to work; both show graceful errors if unavailable.
-- Chat history is in-memory only — cleared on extension reload or page navigation.
-- `buildFlowContext` uses the saved config; if no save has occurred yet, `chatFlowContext` is null and the AI is told "No flow context available yet."
+- AI service must run locally on port 3000 for AI answers; otherwise the rule-based fallback is shown (keyword-based chat: overview, changes, impact, queues, prompts, data actions, called flows, risks/validation, block count).
+- Flow data (block names, queues, conditions, prompts) is sent to OpenAI via the local service; the service logs it to its console.
+- Chat history is in-memory only — cleared on extension reload, page navigation or **Clear**.
+- Release Notes waits for the AI narrative (up to 15 s) before opening.
 - Architect validation errors only appear in context after the user clicks Validate in Architect.
 - All Step 1–10 limitations still apply.
 
@@ -263,9 +271,13 @@ npm start
 21. After clicking Validate in Architect, validation errors appear in context.
 22. Multi-turn: follow-up questions reference previous answers.
 23. Build guidance: ask "how do I add a retry loop?" → AI gives Architect-specific block advice.
-24. Chevron toggle minimises/expands chat correctly.
+24. Chat: input visible when minimised; focus/Send → full screen below header (chevron ⌄); chevron → fully minimised (chevron ^); Clear empties chat.
 25. Textarea grows to 3 lines then scrolls; Enter sends, Shift+Enter newlines.
-26. AI service down → graceful error in chat, rest of panel unaffected.
+26. AI service down → rule-based Customer Journey Impact + chat answers, marked "(Rule-based summary — AI service unavailable.)"; rest of panel unaffected.
+27. Published-only flow (no saved changes) → chat still answers about the published version.
+28. Customer Journey Impact stays ~5–6 lines.
+29. Release Notes page shows Lint & Risk after Change Impact Analysis.
+30. Before every push: `git grep` staged files for the OpenAI key / API secret — must be 0 hits.
 
 ---
 
@@ -290,9 +302,10 @@ npm start
 | Flow validation | `findValidationFooters`, `findValidationPanel`, `getTextChunks`, `parseValidationRows`, `captureValidationResults`, `renderValidationSection` |
 | Visual | `buildVisualFlowModel`, `buildVisualSequenceGraph`, `getVisualExits`, `buildVisualReportPayload`, `openVisualChangeReport` |
 | Release Notes | `buildReleaseEntries`, `buildReleaseNotesBody`, `openReleaseNotes`, `renderReleaseNotesPicker`, `updateReleaseStatus`, `resolveReleasePublisher` |
-| Customer Impact | `getTransferTarget`, `buildBranchWiringLines`, `buildCustomerImpactFacts`, `fetchCustomerImpact`, `renderCustomerImpact` |
-| Flow Q&A / Build Guidance | `extractExpressionText`, `buildFlowContext`, `getAllRisks`, `runRiskRules`, `parseMarkdown`, `inlineMd`, `renderChatMessage`, `sendChatQuestion` |
-| Background | `GET_USER_NAME`, `GET_CUSTOMER_IMPACT`, `FLOW_QA`, scope check (`background.js`) |
+| Customer Journey Impact | `getTransferTarget`, `buildBranchWiringLines`, `collectCustomerImpactData`, `buildCustomerImpactFacts`, `buildFallbackCustomerImpact`, `cleanDependencyName`, `joinNames`, `fetchCustomerImpact`, `renderCustomerImpact` |
+| Flow Q&A / Build Guidance | `extractExpressionText`, `collectFlowResources`, `buildFlowContext`, `buildFallbackChatAnswer`, `buildFallbackFlowOverview`, `getAllRisks`, `runRiskRules`, `parseMarkdown`, `inlineMd`, `renderChatMessage`, `sendChatQuestion` |
+| Panel / chat UI | `initPanel` (`panelReady` promise — messages wait for it), `handleExtensionMessage`, `setChatFullScreen` |
+| Background | `GET_USER_NAME`, `GET_CUSTOMER_IMPACT`, `FLOW_QA`, `callAiService` (secret check, timeout, HTTP status check), `ai-config.js` via `importScripts` |
 
 ---
 
@@ -321,3 +334,11 @@ npm start
 | 2026-10-03 | `getAllRisks` runs RISK_RULES on full flow (not delta-only) for Q&A context |
 | 2026-10-03 | Architect validation errors (`lastValidationRows`) included in Q&A context |
 | 2026-10-03 | Layout push (body margin-right) attempted and reverted — Architect fixed-position elements don't respond |
+| 2026-10-06 | Use Arun's `flowlenz_ai` code as `main` (based on latest Steps 1–9 commit — no merge needed); squashed into one commit so the old hard-coded secret never reached GitHub |
+| 2026-10-06 | AI secret removed from `background.js` and rotated; lives only in git-ignored `ai-config.js` + `.env`; `.env` loaded with `override: true` |
+| 2026-10-06 | Rule-based fallback for Customer Journey Impact (panel + Release Notes) and chat; AI timeouts 15 s / 30 s |
+| 2026-10-06 | `panelReady` guard so toolbar/Save messages never hit an unloaded panel |
+| 2026-10-06 | Customer Impact renamed **Customer Journey Impact**; Regenerate removed; narrative limited to 2–3 sentences / 45 words |
+| 2026-10-06 | Chat: input always visible; full screen below header when used; Clear button; placeholder "Ask about your Flow"; works for published-only flows |
+| 2026-10-06 | Release Notes page: Lint & Risk section added back (delta of that version vs previous) |
+| 2026-10-06 | AI service `GET /` status page |

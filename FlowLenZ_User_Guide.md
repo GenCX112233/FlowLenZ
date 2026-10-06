@@ -45,10 +45,13 @@ PORT=3000
 
 **`browser-plugin/ai-config.js`** (git-ignored): copy `ai-config.example.js` to `ai-config.js` and set `secret` to the same value as `API_SECRET`. Never commit either file.
 
-**Fallback:** if the AI service is off, not configured, slow (15 s impact / 30 s Q&A timeout) or returns an error, FlowLenZ still works — Customer Impact (panel and Release Notes) shows a rule-based summary and chat answers from flow data (changes, impact, queues, prompts, data actions, flows, risks, block count). These are marked "(Rule-based summary — AI service unavailable.)".
+**Fallback:** if the AI service is off, not configured, slow (15 s impact / 30 s Q&A timeout) or returns an error, FlowLenZ still works — Customer Journey Impact (panel and Release Notes) shows a rule-based summary and chat answers from flow data (changes, impact, queues, prompts, data actions, flows, risks, block count). These are marked "(Rule-based summary — AI service unavailable.)".
+
+If an old `OPENAI_API_KEY` exists in your Windows environment variables, `.env` still wins (`override: true`).
 
 Endpoints:
-- `POST /flows/impact` — generates customer impact narrative from change facts
+- `GET /` — status check (open `http://localhost:3000` in a browser)
+- `POST /flows/impact` — generates a short customer journey impact narrative from change facts
 - `POST /flows/qa` — answers flow Q&A and build guidance questions (multi-turn)
 
 ---
@@ -61,6 +64,9 @@ Open Genesys **Architect** on `*.mypurecloud.com` and open a flow.
 Click the **FlowLenZ** toolbar icon to open the panel (it also opens automatically when you **Save** a flow); sign in to Genesys if OAuth prompts (**architect:readonly users:readonly** — both scopes must be enabled on the OAuth client).
 Create a Genesys Cloud OAuth client and add the extension redirect URL (`https://<extension-id>.chromiumapp.org/`), then update the `CLIENT_ID` value in `browser-plugin/background.js`.
 After code changes: **Reload** the extension on `chrome://extensions` (point at `browser-plugin/`), then refresh Architect.
+The extension ID depends on the folder path — if you load from a new folder, add the new `https://<new-id>.chromiumapp.org/` redirect to the **same** OAuth client (no new client needed) and turn the old extension off.
+
+**Using the chat:** type in "Ask about your Flow" (always visible). The chat opens full screen below the header; ⌄ minimises it; **Clear** resets the conversation. Works for saved and published-only flows.
 
 ---
 
