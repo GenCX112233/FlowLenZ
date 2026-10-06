@@ -31,7 +31,8 @@
 
   "host_permissions": [
     "https://login.mypurecloud.com/*",
-    "https://api.mypurecloud.com/*"
+    "https://api.mypurecloud.com/*",
+    "http://localhost:3000/*"
   ],
 
   "content_scripts": [
@@ -74,7 +75,8 @@
     {
       "resources": [
         "genesys-logo-flowlenz.png",
-        "FlowLenZ-logo-light.png"
+        "FlowLenZ-logo-light.png",
+        "panel.html"
       ],
       "matches": [
         "https://*.mypurecloud.com/*"

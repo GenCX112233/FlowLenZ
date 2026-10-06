@@ -1,7 +1,8 @@
 node_modules/
-.env*
+.env
 *.pem
 *.key
 *.log
 .DS_Store
 Thumbs.db
+browser-plugin/ai-config.js

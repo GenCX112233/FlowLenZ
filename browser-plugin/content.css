@@ -188,40 +188,134 @@
   /* CHAT */
   
   .flowlenz-chat {
-    min-height: 68px;
-  
-    padding: 16px;
-  
+    padding: 0;
     display: flex;
-  
-    gap: 8px;
-  
+    flex-direction: column;
     background: #ffffff;
-  
-    border-top:
-      1px solid #e2e5ea;
+    border-top: 1px solid #e2e5ea;
+    max-height: 340px;
+  }
+
+  .flowlenz-chat.flowlenz-chat-minimised {
+    max-height: none;
+  }
+
+  /* Chat in use: fill the panel below the header */
+
+  .flowlenz-panel.flowlenz-chat-full .flowlenz-content {
+    display: none;
+  }
+
+  .flowlenz-panel.flowlenz-chat-full .flowlenz-chat {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    border-top: none;
+  }
+
+  .flowlenz-chat.flowlenz-chat-minimised #flowlenz-chat-messages {
+    display: none;
+  }
+
+  .flowlenz-chat-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid #f0f2f5;
+  }
+
+  .flowlenz-chat-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #242424;
+    cursor: pointer;
+  }
+
+  #flowlenz-chat-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #646c78;
+    line-height: 1;
+    padding: 0 2px;
+    display: flex;
+    align-items: center;
+  }
+
+  #flowlenz-chat-toggle:hover {
+    color: #242424;
+  }
+
+  #flowlenz-chat-toggle svg {
+    display: block;
+  }
+
+  #flowlenz-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #flowlenz-chat-messages:empty {
+    display: none;
+  }
+
+  .flowlenz-chat-bubble {
+    max-width: 88%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .flowlenz-chat-bubble.user {
+    align-self: flex-end;
+    background: #ff4f1f;
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .flowlenz-chat-bubble.ai {
+    align-self: flex-start;
+    background: #f0f2f5;
+    color: #242424;
+    border-bottom-left-radius: 4px;
+  }
+
+  .flowlenz-chat-bubble.ai.loading {
+    color: #8a96a3;
+    font-style: italic;
+  }
+
+  .flowlenz-chat-input-row {
+    min-height: 56px;
+    padding: 10px 14px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid #f0f2f5;
   }
   
   #flowlenz-chat-input {
     flex: 1;
-  
     min-width: 0;
-  
-    padding: 12px;
-  
-    border:
-      1px solid #cfd4dc;
-  
+    padding: 8px 12px;
+    border: 1px solid #cfd4dc;
     border-radius: 6px;
-  
-    font-family:
-      Arial,
-      Helvetica,
-      sans-serif;
-  
+    font-family: Arial, Helvetica, sans-serif;
     font-size: 14px;
-  
     outline: none;
+    resize: none;
+    overflow-y: auto;
+    line-height: 1.5;
+    min-height: 36px;
+    max-height: calc(1.5em * 3 + 16px);
+    box-sizing: border-box;
   }
   
   #flowlenz-chat-input:focus {
@@ -230,25 +324,39 @@
   
   #flowlenz-send-button {
     border: none;
-  
     border-radius: 6px;
-  
-    padding:
-      0 18px;
-  
+    padding: 0 18px;
     background: #ff4f1f;
-  
     color: #ffffff;
-  
     font-size: 14px;
-  
     font-weight: 600;
-  
     cursor: pointer;
+    align-self: flex-end;
+    height: 36px;
+    flex-shrink: 0;
   }
   
   #flowlenz-send-button:hover {
     background: #e94416;
+  }
+
+  #flowlenz-clear-button {
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    padding: 0 12px;
+    background: #ffffff;
+    color: #646c78;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    align-self: flex-end;
+    height: 36px;
+    flex-shrink: 0;
+  }
+
+  #flowlenz-clear-button:hover {
+    color: #242424;
+    border-color: #8a96a3;
   }
 
   .flowlenz-release-select {
@@ -289,4 +397,35 @@
     cursor: not-allowed;
     background: #8a96a3;
     border-color: #8a96a3;
+  }
+
+  .flowlenz-chat-bubble.ai p {
+    margin: 0 0 6px;
+  }
+
+  .flowlenz-chat-bubble.ai p:last-child {
+    margin-bottom: 0;
+  }
+
+  .flowlenz-chat-bubble.ai ul,
+  .flowlenz-chat-bubble.ai ol {
+    margin: 4px 0 6px;
+    padding-left: 18px;
+  }
+
+  .flowlenz-chat-bubble.ai li {
+    margin-bottom: 3px;
+  }
+
+  .flowlenz-chat-bubble.ai code {
+    background: #e4e7ec;
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 12px;
+    font-family: monospace;
+  }
+
+  .flowlenz-chat-bubble.ai strong {
+    font-weight: 600;
+    color: #242424;
   }

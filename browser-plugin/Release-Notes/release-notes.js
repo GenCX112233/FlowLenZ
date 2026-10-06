@@ -73,7 +73,13 @@ function render(data) {
   }
 
   addSection("Summary", data.summary, "");
+  if (data.customerImpact) {
+    addSection("Customer Journey Impact", data.customerImpact, "");
+  }
   addSection("Change Impact Analysis", "", data.changeImpactHtml);
+  if (data.riskSummary) {
+    addSection("Lint & Risk", data.riskSummary, data.riskHtml);
+  }
 }
 
 downloadButton.addEventListener("click", () => window.print());

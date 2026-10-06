@@ -67,6 +67,7 @@ body {
   margin-top: 6px;
   font-size: 14px;
   color: #5c6778;
+  white-space: pre-line;
 }
 
 .rn-section-body {

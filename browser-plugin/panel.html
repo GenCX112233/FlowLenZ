@@ -1,0 +1,78 @@
+<div class="flowlenz-panel flowlenz-hidden">
+
+  <div class="flowlenz-header">
+    <img class="flowlenz-logo" src="__LOGO_URL__" alt="Genesys" />
+    <img class="flowlenz-brand-logo" src="__BRAND_LOGO_URL__" alt="FlowLenZ — AI Assistant for Genesys Cloud Architect" />
+  </div>
+
+  <div class="flowlenz-content">
+
+    <div class="flowlenz-welcome">
+      <h2>How can I help?</h2>
+      <p>Understand the flow. See the change. Know the impact</p>
+    </div>
+
+    <div class="flowlenz-section">
+      <div class="flowlenz-section-title">Current Flow</div>
+      <div id="flowlenz-flow-name" class="flowlenz-section-status">Detecting...</div>
+    </div>
+
+    <div class="flowlenz-section">
+      <div class="flowlenz-section-title">Change Report</div>
+      <div id="flowlenz-published-version" class="flowlenz-section-status">Published Version: Detecting...</div>
+      <div id="flowlenz-saved-version" class="flowlenz-section-status" style="margin-top: 6px;">Saved Version: Detecting...</div>
+      <div id="flowlenz-config-status" class="flowlenz-section-status" style="margin-top: 10px; font-size: 12px;">Configurations: Waiting...</div>
+      <div id="flowlenz-refresh-status" class="flowlenz-section-status" style="margin-top: 5px; font-size: 12px;">Refresh: On Open / Architect Save</div>
+    </div>
+
+    <div class="flowlenz-section">
+      <div class="flowlenz-section-title">Visual Change Report</div>
+      <div id="flowlenz-visual-report-status" class="flowlenz-section-status" style="font-size: 12px;">Save the flow to enable the report.</div>
+      <button id="flowlenz-visual-report-open" type="button" class="flowlenz-report-link" disabled>Open Visual Change Report</button>
+    </div>
+
+    <div class="flowlenz-section">
+      <div class="flowlenz-section-title">Change Impact Analysis</div>
+      <div id="flowlenz-analysis-summary" class="flowlenz-section-status">Waiting for comparison...</div>
+      <div id="flowlenz-analysis-details" class="flowlenz-section-status" style="margin-top: 10px; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere;"></div>
+    </div>
+
+    <div class="flowlenz-section">
+      <div class="flowlenz-section-title">Customer Journey Impact</div>
+      <div id="flowlenz-customer-impact" class="flowlenz-section-status" style="font-size: 13px; line-height: 1.7; white-space: pre-line;">Save the flow to analyse customer journey impact.</div>
+    </div>
+
+    <div class="flowlenz-section">
+      <div class="flowlenz-section-title">Lint &amp; Risk</div>
+      <div id="flowlenz-risk-summary" class="flowlenz-section-status">Waiting for analysis</div>
+      <div id="flowlenz-risk-details" class="flowlenz-section-status" style="margin-top: 10px; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere;"></div>
+      <div id="flowlenz-validation" class="flowlenz-section-status" style="margin-top: 10px; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere;"></div>
+    </div>
+
+    <div class="flowlenz-section">
+      <div class="flowlenz-section-title">Release Notes</div>
+      <select id="flowlenz-release-version" class="flowlenz-release-select" disabled></select>
+      <div id="flowlenz-release-status" class="flowlenz-section-status" style="font-size: 12px; white-space: pre-line;">Waiting for published versions...</div>
+      <button id="flowlenz-release-open" type="button" class="flowlenz-report-link" disabled>Open Release Notes</button>
+    </div>
+
+  </div>
+
+  <div class="flowlenz-chat">
+    <div class="flowlenz-chat-toolbar">
+      <span class="flowlenz-chat-label">Ask FlowLenZ</span>
+      <button id="flowlenz-chat-toggle" type="button" title="Expand / Minimise chat">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M7.646 11.354a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8 10.293 5.354 7.646a.5.5 0 0 0-.708.708l3 3z"/>
+        </svg>
+      </button>
+    </div>
+    <div id="flowlenz-chat-messages"></div>
+    <div class="flowlenz-chat-input-row">
+      <textarea id="flowlenz-chat-input" rows="1" placeholder="Ask about your Flow"></textarea>
+      <button id="flowlenz-send-button">Send</button>
+      <button id="flowlenz-clear-button" type="button" title="Clear chat">Clear</button>
+    </div>
+  </div>
+
+</div>
